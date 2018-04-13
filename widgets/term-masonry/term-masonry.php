@@ -25,7 +25,7 @@ class LMG_Widget_Term_Masonry extends WP_Widget {
 
 		$widget_options = array(
 			'classname'   => $this->widget_class,
-			'description' => 'Displays a masonry of all post terms of the selected type.'
+			'description' => 'Displays a masonry of terms for the selected taxonomy.'
 		);
 		parent::__construct( $this->widget_class, 'LMG Term Masonry', $widget_options );
 	}
@@ -105,25 +105,24 @@ class LMG_Widget_Term_Masonry extends WP_Widget {
 	 *
 	 * @param array $args
 	 * @param array $instance
-	 * @param bool  $shortcode
+	 * @param bool  $is_shortcode
 	 *
 	 * @return null
 	 */
-	public function widget( $args, $instance, $shortcode = false ) {
+	public function widget( $args, $instance, $is_shortcode = false ) {
 		$terms = get_terms( array(
 			'taxonomy' => $instance[ 'taxonomy' ],
 		) );
 
-		if ( empty( $terms ) && ! $shortcode ) return _e( 'Nothing Found.', 'lmg-widgets' );
+		if ( empty( $terms ) && ! $is_shortcode ) return _e( 'Nothing Found.', 'lmg-widgets' );
 		if ( empty( $terms ) )                 return __( 'Nothing Found.', 'lmg-widgets' );
 
 		$title  = apply_filters( 'widget_title', $instance[ 'title' ] );
 		$gutter = is_int( $instance[ 'gutter' ] ) ? $instance[ 'gutter' ] : $this->gutter_default;
 		$class  = 'g' . $gutter;
 
-		$this->css( $class, $gutter );
-
 		$output = '';
+		$output .= $this->css( $class, $gutter );
 		$output .= $args[ 'before_widget' ];
 		$output .= ! empty( $title ) ? $args[ 'before_title' ] . $title . $args[ 'after_title' ] : '';
 		$output .= '<div class="row odd ' . $class . '">';
@@ -169,7 +168,7 @@ class LMG_Widget_Term_Masonry extends WP_Widget {
 		$output .= '</div>';
 		$output .= $args[ 'after_widget' ];
 
-		if ( $shortcode ) return $output;
+		if ( $is_shortcode ) return $output;
 		echo $output;
 	}
 
@@ -321,7 +320,7 @@ class LMG_Widget_Term_Masonry extends WP_Widget {
 
 		$output = ob_get_clean();
 		$output = str_replace( array( "\r", "\n", "\t" ), '', $output );
-		wp_add_inline_style( 'lmg-widgets', $output );
+		return $output;
 	}
 
 }
