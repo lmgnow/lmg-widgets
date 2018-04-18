@@ -12,9 +12,12 @@ if ( ! defined( 'WPINC' ) ) die();
 
 add_action( 'wp_enqueue_scripts', 'lmg_widgets_enqueue' );
 function lmg_widgets_enqueue() {
-	//wp_enqueue_style(  'lmg-widgets', plugin_dir_url( __FILE__ ) . 'style.css', array(), '1.0.0', 'screen' );
+	//wp_enqueue_style(  'lmg-widgets', plugin_dir_url( __FILE__ ) . 'style.css',  array(),           '1.0.0', 'screen' );
+
+	//wp_enqueue_script( 'lmg-widgets', plugin_dir_url( __FILE__ ) . 'script.css', array( 'jquery' ), '1.0.0', true     );
 }
 
+require_once 'widgets/lorem-ipsum/lorem-ipsum.php';
 require_once 'widgets/term-masonry/term-masonry.php';
 
 ?>

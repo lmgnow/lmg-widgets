@@ -223,7 +223,7 @@ class LMG_Widget_Term_Masonry extends WP_Widget {
 	 * @param str $class
 	 * @param int $gutter
 	 *
-	 * @return null
+	 * @return $output
 	 */
 	private function css( $class, $gutter ) {
 		if ( in_array( $class, $this->classes ) ) return;
