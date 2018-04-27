@@ -8,12 +8,13 @@ function lmg_register_widget_term_masonry() {
 }
 
 class LMG_Widget_Term_Masonry extends WP_Widget {
-	private $widget_dir_url = '';                 // str e.g. https://www.example.com/wp-content/plugins/lmg-widgets/widgets/term-masonry/ (with trailing slash)
-	private $classes        = array();            // array
-	public  $widget_class   = 'lmg_term_masonry'; // str
-	public  $type_default   = 'post';             // str
-	public  $tax_default    = 'category';         // str
-	public  $gutter_default = 3;                  // int
+	private $widget_dir_url       = '';                 // str e.g. https://www.example.com/wp-content/plugins/lmg-widgets/widgets/term-masonry/ (with trailing slash)
+	private $classes              = array();            // array
+	public  $widget_class         = 'lmg_term_masonry'; // str
+	public  $type_default         = 'post';             // str
+	public  $tax_default          = 'category';         // str
+	public  $reuse_thumbs_default = 'yes';              // str
+	public  $gutter_default       = 3;                  // int
 
 	/**
 	 * Constructs the widget object.
@@ -40,10 +41,11 @@ class LMG_Widget_Term_Masonry extends WP_Widget {
 	 */
 	public function update( $new_instance, $old_instance ) {
 		$instance = $old_instance;
-		$instance[ 'title' ]     = strip_tags( $new_instance[ 'title' ]     );
-		$instance[ 'post_type' ] = esc_attr(   $new_instance[ 'post_type' ] );
-		$instance[ 'taxonomy' ]  = esc_attr(   $new_instance[ 'taxonomy' ]  );
-		$instance[ 'gutter' ]    = absint(     $new_instance[ 'gutter' ]    );
+		$instance[ 'title' ]        = strip_tags( $new_instance[ 'title'        ] );
+		$instance[ 'post_type' ]    = esc_attr(   $new_instance[ 'post_type'    ] );
+		$instance[ 'taxonomy' ]     = esc_attr(   $new_instance[ 'taxonomy'     ] );
+		$instance[ 'reuse_thumbs' ] = esc_attr(   $new_instance[ 'reuse_thumbs' ] );
+		$instance[ 'gutter' ]       = absint(     $new_instance[ 'gutter'       ] );
 		return $instance;
 	}
 
@@ -70,7 +72,7 @@ class LMG_Widget_Term_Masonry extends WP_Widget {
 					<?php
 						$types = $this->post_types();
 						foreach ( $types as $type ) {
-							?><option value="<?php echo $type[ 'name' ]; ?>" <?php selected( $instance[ 'post_type' ], $type[ 'name' ], 1 ); ?>><?php echo $type[ 'label' ]; ?></option><?php
+							?><option value="<?php echo $type[ 'name' ]; ?>" <?php selected( $instance[ 'post_type' ], $type[ 'name' ], true ); ?>><?php echo $type[ 'label' ]; ?></option><?php
 						}
 					?>
 				</select>
@@ -84,9 +86,19 @@ class LMG_Widget_Term_Masonry extends WP_Widget {
 					<?php
 						$taxes = $this->taxonomies();
 						foreach ( $taxes as $tax ) {
-							?><option value="<?php echo $tax[ 'name' ]; ?>" <?php selected( $instance[ 'taxonomy' ], $tax[ 'name' ], 1 ); ?>><?php echo $tax[ 'label' ]; ?></option><?php
+							?><option value="<?php echo $tax[ 'name' ]; ?>" <?php selected( $instance[ 'taxonomy' ], $tax[ 'name' ], true ); ?>><?php echo $tax[ 'label' ]; ?></option><?php
 						}
 					?>
+				</select>
+			</p>
+		<?php
+
+		?>
+			<p>
+				<label for="<?php echo $this->get_field_id( 'reuse_thumbs' ); ?>">Reuse Thumbnails:</label>
+				<select id="<?php echo $this->get_field_id( 'reuse_thumbs' ); ?>" name="<?php echo $this->get_field_name( 'reuse_thumbs' ); ?>">
+					<option value="yes" <?php selected( $instance[ 'reuse_thumbs' ], 'yes', true ); ?>>Yes</option>
+					<option value="no" <?php selected( $instance[ 'reuse_thumbs' ], 'no', true ); ?>>No</option>
 				</select>
 			</p>
 		<?php
@@ -111,11 +123,12 @@ class LMG_Widget_Term_Masonry extends WP_Widget {
 	 */
 	public function widget( $args, $instance, $is_shortcode = false ) {
 		$terms = get_terms( array(
-			'taxonomy' => $instance[ 'taxonomy' ],
+			'taxonomy'     => $instance[ 'taxonomy' ],
+			'hierarchical' => true,
 		) );
 
 		if ( empty( $terms ) && ! $is_shortcode ) return _e( 'Nothing Found.', 'lmg-widgets' );
-		if ( empty( $terms ) )                 return __( 'Nothing Found.', 'lmg-widgets' );
+		if ( empty( $terms ) )                    return __( 'Nothing Found.', 'lmg-widgets' );
 
 		$title  = apply_filters( 'widget_title', $instance[ 'title' ] );
 		$gutter = is_int( $instance[ 'gutter' ] ) ? $instance[ 'gutter' ] : $this->gutter_default;
@@ -127,7 +140,10 @@ class LMG_Widget_Term_Masonry extends WP_Widget {
 		$output .= ! empty( $title ) ? $args[ 'before_title' ] . $title . $args[ 'after_title' ] : '';
 		$output .= '<div class="row odd ' . $class . '">';
 
-		foreach ( $terms as $n => $term ) {
+		$posts = array();
+		$n = -1;
+		foreach ( $terms as $term ) {
+			$n++;
 			$params = array(
 				'post_type'      => $instance[ 'post_type' ],
 				'posts_per_page' => 1,
@@ -145,13 +161,16 @@ class LMG_Widget_Term_Masonry extends WP_Widget {
 					),
 				),
 			);
+			if ( 'no' === $instance[ 'reuse_thumbs' ] ) {
+				$params[ 'post__not_in' ] = $posts;
+			}
 			$query = new WP_Query( $params );
 
-			$thumbnail_url = $this->widget_dir_url . 'images/placeholder.png';
-			while ( $query->have_posts() ) {
-				$query->the_post();
-				$thumbnail_url = get_the_post_thumbnail_url( $post, 'large' );
-			}
+			$style = '';
+			while ( $query->have_posts() ) : $query->the_post();
+				$posts[] = get_the_ID();
+				$style = ' style="background-image: url(\'' . get_the_post_thumbnail_url( $post, 'large' ) . '\');"';
+			endwhile;
 			
 			if ( 0 === $n % 10 && 0 !== $n ) {
 				$output .= '</div><div class="row odd ' . $class . '">';
@@ -159,7 +178,7 @@ class LMG_Widget_Term_Masonry extends WP_Widget {
 				$output .= '</div><div class="row even ' . $class . '">';
 			}
 
-			$output .= '<div class="tile" style="background-image: url(\'' . $thumbnail_url . '\');">';
+			$output .= '<div class="tile"' . $style . '>';
 			$output .= '<a href="' . get_term_link( $term, $instance[ 'taxonomy' ] ) . '"><span>#' . $term->name . '</span></a>';
 			$output .= '</div>';
 		}
@@ -239,6 +258,7 @@ class LMG_Widget_Term_Masonry extends WP_Widget {
 					width: 100%;
 					height: 100%;
 					background-color: rgba(0,0,0,0.4);
+					color: #fff;
 					text-transform: uppercase;
 					font-weight: bold;
 					text-decoration: none;
@@ -251,6 +271,7 @@ class LMG_Widget_Term_Masonry extends WP_Widget {
 				}
 
 				.<?php echo $this->widget_class; ?> <?php echo $class; ?> .tile {
+					background-color: #333;
 					background-size: cover;
 					background-position: center center;
 					background-repeat: no-repeat;
@@ -337,16 +358,18 @@ function lmg_term_masonry( $atts ) {
 	);
 
 	$instance = shortcode_atts( array(
-		'title'     => '',
-		'post_type' => $widget->type_default,
-		'taxonomy'  => $widget->tax_default,
-		'gutter'    => $widget->gutter_default,
+		'title'        => '',
+		'post_type'    => $widget->type_default,
+		'taxonomy'     => $widget->tax_default,
+		'reuse_thumbs' => $widget->reuse_thumbs_default,
+		'gutter'       => $widget->gutter_default,
 	), $atts, $widget->widget_class );
 
-	$instance[ 'title' ]     = esc_attr( $instance[ 'title' ] );
-	$instance[ 'post_type' ] = in_array( $instance[ 'post_type' ], array_column( $widget->post_types(), 'name' ) ) ? $instance[ 'post_type' ] : $widget->type_default;
-	$instance[ 'taxonomy' ]  = in_array( $instance[ 'taxonomy' ],  array_column( $widget->taxonomies(), 'name' ) ) ? $instance[ 'taxonomy' ]  : $widget->tax_default;
-	$instance[ 'gutter' ]    = absint( $instance[ 'gutter' ] );
+	$instance[ 'title' ]        = strip_tags( $instance[ 'title' ] );
+	$instance[ 'post_type' ]    = in_array( $instance[ 'post_type' ], array_column( $widget->post_types(), 'name' ) ) ? $instance[ 'post_type' ] : $widget->type_default;
+	$instance[ 'taxonomy' ]     = in_array( $instance[ 'taxonomy' ],  array_column( $widget->taxonomies(), 'name' ) ) ? $instance[ 'taxonomy' ]  : $widget->tax_default;
+	$instance[ 'reuse_thumbs' ] = 'no' === $instance[ 'reuse_thumbs' ] ? 'no' : 'yes';
+	$instance[ 'gutter' ]       = absint( $instance[ 'gutter' ] );
 
 	return $widget->widget( $args, $instance, true );
 }
