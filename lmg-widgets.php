@@ -3,7 +3,7 @@
  * Plugin Name:   LMG Widgets
  * Plugin URI:    https://github.com/lmgnow/lmg-widgets/
  * Description:   A collection of custom widgets.
- * Version:       1.0.1
+ * Version:       1.0.0
  * Author:        Jeremy Kozan
  * Author URI:    https://www.lmgnow.com/
  */
