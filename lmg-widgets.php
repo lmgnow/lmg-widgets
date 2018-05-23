@@ -3,7 +3,7 @@
  * Plugin Name:   LMG Widgets
  * Plugin URI:    https://github.com/lmgnow/lmg-widgets/
  * Description:   A collection of custom widgets.
- * Version:       1.1.2
+ * Version:       1.1.3
  * Author:        Jeremy Kozan
  * Author URI:    https://www.lmgnow.com/
  */
@@ -30,7 +30,7 @@ class LMG_Widgets {
 		require_once $plugin_dir_path . 'widgets/lorem-ipsum/lorem-ipsum.php';
 		require_once $plugin_dir_path . 'widgets/term-masonry/term-masonry.php';
 
-		add_action( 'wp_enqueue_scripts', 'enqueue' );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue' ) );
 	}
 
 	/**
